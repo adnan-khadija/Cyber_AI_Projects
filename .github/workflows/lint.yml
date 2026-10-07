@@ -1,0 +1,32 @@
+name: CI Security & Code Quality Linting
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v4
+
+      - name: Configuration de Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Installation des outils de Lint
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          pip install flake8
+
+      - name: Verification ShellCheck (Scripts Bash)
+        run: |
+          shellcheck scripts/*.sh
+
+      - name: Verification Flake8 (Scripts Python)
+        run: |
+          flake8 scripts/ --max-line-length=100 --ignore=E501,W503
