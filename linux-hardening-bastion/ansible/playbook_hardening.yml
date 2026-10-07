@@ -1,0 +1,78 @@
+---
+- name: Hardening & Sécurisation du Bastion Linux
+  hosts: bastions
+  become: yes
+
+  vars:
+    ssh_port: 2222
+    allowed_user: "admin-bastion"
+
+  tasks:
+    - name: 1. Mise à jour des paquets système (APT)
+      apt:
+        update_cache: yes
+        upgrade: dist
+        autoremove: yes
+        purge: yes
+
+    - name: 2. Installation des outils de sécurité essentiels
+      apt:
+        name:
+          - auditd
+          - audispd-plugins
+          - ufw
+          - fail2ban
+          - lynis
+          - libpam-pwquality
+        state: present
+
+    - name: 3. Durcissement des paramètres Noyau (sysctl)
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+      loop:
+        - { key: 'net.ipv4.ip_forward', value: '0' }
+        - { key: 'net.ipv4.conf.all.rp_filter', value: '1' }
+        - { key: 'net.ipv4.conf.default.rp_filter', value: '1' }
+        - { key: 'net.ipv4.icmp_echo_ignore_broadcasts', value: '1' }
+        - { key: 'net.ipv4.conf.all.accept_redirects', value: '0' }
+        - { key: 'net.ipv4.tcp_syncookies', value: '1' }
+
+    - name: 4. Sécurisation de la configuration OpenSSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        validate: '/usr/sbin/sshd -t -f %s'
+      loop:
+        - { regexp: '^#?Port ', line: 'Port {{ ssh_port }}' }
+        - { regexp: '^#?PermitRootLogin ', line: 'PermitRootLogin no' }
+        - { regexp: '^#?PasswordAuthentication ', line: 'PasswordAuthentication no' }
+        - { regexp: '^#?X11Forwarding ', line: 'X11Forwarding no' }
+      notify: Redémarrer SSH
+
+    - name: 5. Configuration du Pare-feu UFW
+      ufw:
+        state: enabled
+        policy: deny
+        direction: incoming
+
+    - name: 6. Autoriser le port SSH personnalisé (2222/tcp) dans UFW
+      ufw:
+        rule: allow
+        port: "{{ ssh_port }}"
+        proto: tcp
+
+    - name: 7. S'assurer que le service auditd est activé et démarré
+      service:
+        name: auditd
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Redémarrer SSH
+      service:
+        name: ssh
+        state: restarted
