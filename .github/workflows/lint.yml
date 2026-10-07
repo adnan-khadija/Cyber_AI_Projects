@@ -23,10 +23,10 @@ jobs:
           sudo apt-get update && sudo apt-get install -y shellcheck
           pip install flake8
 
-      - name: Verification ShellCheck (Scripts Bash)
+      - name: Verification ShellCheck (Tous les scripts Bash du repo)
         run: |
-          shellcheck scripts/*.sh
+          find . -type f -name "*.sh" -not -path "*/.*" -exec shellcheck {} +
 
-      - name: Verification Flake8 (Scripts Python)
+      - name: Verification Flake8 (Tous les scripts Python du repo)
         run: |
-          flake8 scripts/ --max-line-length=100 --ignore=E501,W503
+          flake8 . --count --max-line-length=100 --ignore=E501,W503
