@@ -8,8 +8,6 @@ ALLOWED_SUID = {
     "/usr/bin/chfn", "/usr/bin/gpasswd", "/usr/bin/umount", "/usr/bin/mount"
 }
 
-
-
 def scan_suid_sgid():
     suspicious = []
     print("[*] Scan des fichiers SUID/SGID en cours...")
